@@ -1,0 +1,87 @@
+# seed 42
+
+deleteNets *
+
+set agent_id $env(agent_id)
+set bm -1.5
+set bs 0
+set wm 0.80
+set ws 0.10
+set cs 0.50
+
+echo $agent_id
+echo $bm
+echo $bs
+echo $wm
+echo $ws
+echo $cs
+
+pwd
+
+ls
+
+addNet "10X10-TRA DIFFUSION" -i 3.0 -t 3.0 CONTINUOUS
+
+addGroup Input 10 INPUT OUTPUT SOFT_CLAMP BIASED
+addGroup InputMirror 10 INPUT OUTPUT SOFT_CLAMP BIASED
+
+connectGroups Input Input
+connectGroups InputMirror InputMirror
+
+#FIX INTERBANK UNITS (BETWEEN BANK)
+repeat u [getObj Input.numUnits] {
+   connectUnits Input:$u InputMirror:$u -m $bm -r $bs -b
+}
+repeat u [getObj Input.numUnits] {
+   connectUnits InputMirror:$u Input:$u -m $bm -r $bs -b
+}
+
+#Remove Input->Input self connections AND mirror
+repeat u [getObj Input.numUnits] {
+  disconnectUnits Input:$u Input:$u
+}
+
+repeat u [getObj InputMirror.numUnits] {
+  disconnectUnits InputMirror:$u InputMirror:$u
+}
+
+#CHARACTERISTICS OF NETWORK
+setObj Input.initOutput	  0.0
+setObj InputMirror.initOutput  0.0
+
+setObj Input.maxOutput	  1.0
+setObj InputMirror.maxOutput  1.0
+
+setObj Input.minOutput	 -0.2
+setObj InputMirror.minOutput  -0.2
+
+deleteExampleSets *
+
+#EXAMPLE SETS
+# ORDERED MUST BE SET AS IS HERE
+# /input_'+str(self.agent_number)+'.ex
+loadExamples ./lens_output/input_$agent_id.ex -s train -exmode ORDERED
+
+setObj train.graceTime  1.0
+setObj train.minTime    3.0
+setObj train.maxTime    3.0
+
+setObj learningRate     0.01
+setObj momentum         0.8
+setObj clampStrength 	$cs
+setObj randRange        0.25
+
+#LOAD WEIGHTS
+#DAN USE ENV VARIABLE "a" for Agent ID
+loadWeights ./lens_output/AgentWgt$agent_id.wt
+
+#NO LEARNING ALLOWED
+freezeWeights
+
+#MAKE DATA AND SIMULATE
+openNetOutputFile lens_output/AgentState.out
+train 1
+closeNetOutputFile
+
+exit
+#EOF

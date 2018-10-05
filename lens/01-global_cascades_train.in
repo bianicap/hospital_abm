@@ -1,0 +1,46 @@
+# the working directory is where the in file is
+
+echo setting environment variables
+
+set agent_id $env(agent_id)
+echo $agent_id
+set criterion 50
+
+deleteNets *
+
+echo loading examples
+loadExamples ./lens_output/example_train_$agent_id.ex -s encoder
+
+echo building network structure
+# BUILD NETWORK STRUCTURE
+proc buildEncoder hidden {
+  addNet "8-${hidden}-8 Encoder" 20 $hidden 20
+  useTrainingSet encoder
+}
+
+echo building encoder
+buildEncoder 10
+
+echo changing group type
+changeGroupType "output" +WRITE_OUTPUTS +USE_OUTPUT_HIST +USE_TARGET_HIST
+
+echo setting training parameters
+setObj criterion $criterion
+setObj learningRate    0.1
+setObj weightDecay     0.0001
+setObj zeroErrorRadius 0.01
+
+# PREPARE FOR PROCESSING
+resetNet
+
+echo training
+# TRAIN -- TRAINING # number of epochs
+train 100
+
+echo saving weights
+# SAVE WEIGHTS -- TRAINING ONLY
+saveWeights ./lens_output/wgt_$agent_id.wt
+
+echo exiting lens
+exit
+# EOF

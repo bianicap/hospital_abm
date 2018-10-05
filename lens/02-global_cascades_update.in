@@ -1,0 +1,59 @@
+echo setting environment variables
+
+set agent_id $env(agent_id)
+set ex_basename input
+
+set criterion 50
+
+echo $agent_id
+# echo $ex_basename
+
+deleteNets *
+
+echo loading examples
+loadExamples ./lens_output/${ex_basename}_$agent_id.ex -s encoder
+
+echo building network structure
+# BUILD NETWORK STRUCTURE
+proc buildEncoder hidden {
+  addNet "8-${hidden}-8 Encoder" 20 $hidden 20
+  useTrainingSet encoder
+}
+
+echo building encoder
+buildEncoder 10
+
+echo changing group type
+changeGroupType "output" +WRITE_OUTPUTS +USE_OUTPUT_HIST +USE_TARGET_HIST
+
+echo setting training parameters
+setObj criterion $criterion
+setObj learningRate    0.1
+setObj weightDecay     0.0001
+setObj zeroErrorRadius 0.01
+
+# PREPARE FOR PROCESSING
+resetNet
+
+echo loading weights
+# LOAD WEIGHTS -- UPDATING ONLY
+loadWeights ./lens_output/wgt_$agent_id.wt
+
+# NO LEARNING ALLOWED -- UPDATING ONLY
+freezeWeights
+
+echo creating out file
+# OUTPUT OPEN -- UPDATING ONLY
+openNetOutputFile ./lens_output/${ex_basename}_$agent_id.out
+
+echo training 1 epoch
+# TRAIN -- UPDATING
+train 1
+
+echo new_agent_state outfile created
+#OUTPUT CLOSE -- UPDATING ONLY
+closeNetOutputFile
+
+#echo exiting lens
+exit
+# EOF
