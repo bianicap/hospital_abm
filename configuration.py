@@ -106,10 +106,10 @@ def modelRuns(cognitivePhase, annType, networkPhase, numRandomKnowledgeAgents, k
 
 # connect to postgres database
 con = pg.connect(dbname='abm',
-                 user='bpires',
-                 host='172.18.0.2',
-                 port='5432',
-                password='bao1@Cssgmu')
+                 user='',
+                 host='',
+                 port='',
+                password='')
 cur = con.cursor()
 
 sensitivityAnalysis = False
